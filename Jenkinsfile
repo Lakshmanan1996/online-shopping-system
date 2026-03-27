@@ -33,15 +33,8 @@ pipeline {
 
         /* ===================== BUILD ===================== */
         stage('Build') {
-            agent { label 'workernode2' }
-
-            tools {
-                maven 'maven'
-            }
-
             steps {
-                unstash 'source-code'
-                sh 'mvn clean package -DskipTests'
+                echo "No build needed for PHP project"
             }
         }
 
