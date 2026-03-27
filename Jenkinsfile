@@ -1,20 +1,15 @@
 pipeline {
     agent none
 
-    
     options {
         timestamps()
         disableConcurrentBuilds()
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
-    
-
     environment {
         DOCKERHUB_USER = "lakshvar96"
         IMAGE = "onlineshopping"
-        
-
         GIT_REPO = "https://github.com/Lakshmanan1996/online-shopping-system.git"
     }
 
@@ -24,14 +19,11 @@ pipeline {
         stage('Checkout Code') {
             agent { label 'workernode1' }
             steps {
-                checkout([$class: 'GitSCM',
-                    branches: [[name: 'master']],
-                    userRemoteConfigs: [[url: "${GIT_REPO}"]]
-                ])
+                git branch: 'master', url: "${GIT_REPO}"
             }
         }
 
-        /* ===================== STASH SOURCE ===================== */
+        /* ===================== STASH ===================== */
         stage('Stash Source') {
             agent { label 'workernode1' }
             steps {
@@ -39,41 +31,42 @@ pipeline {
             }
         }
 
-        /* ===================== Build Maven single Stage ===================== */
+        /* ===================== BUILD ===================== */
         stage('Build') {
-            agent { label 'workernode2'}
+            agent { label 'workernode2' }
+
             tools {
                 maven 'maven'
             }
 
             steps {
                 unstash 'source-code'
-                sh 'mvn clean install -DskipTests'
-            
+                sh 'mvn clean package -DskipTests'
+            }
         }
-
-
-        
 
         /* ===================== SONARQUBE ===================== */
         stage('SonarQube Analysis') {
             agent { label 'workernode2' }
+
             steps {
                 unstash 'source-code'
 
                 script {
                     def scannerHome = tool 'SonarQubeScanner'
                     withSonarQubeEnv('sonarqube') {
-                        
-                            
-                            }
-                        }
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.projectKey=shopping \
+                        -Dsonar.sources=. \
+                        -Dsonar.java.binaries=target
+                        """
                     }
                 }
             }
+        }
 
-        /*===================== QUALITY GATE ===================== */
-        
+        /* ===================== QUALITY GATE ===================== */
         stage('Quality Gate') {
             agent { label 'workernode2' }
             steps {
@@ -82,65 +75,59 @@ pipeline {
                 }
             }
         }
-      
 
         /* ===================== DOCKER BUILD ===================== */
         stage('Docker Build') {
             agent { label 'workernode3' }
+
             steps {
                 unstash 'source-code'
 
                 sh """
-                # Build
                 docker build -t ${DOCKERHUB_USER}/${IMAGE}:${BUILD_NUMBER} .
                 docker tag ${DOCKERHUB_USER}/${IMAGE}:${BUILD_NUMBER} ${DOCKERHUB_USER}/${IMAGE}:latest
-
-               
                 """
             }
         }
 
-        /* ===================== TRIVY SCAN ===================== */
+        /* ===================== TRIVY ===================== */
         stage('Trivy Scan') {
             agent { label 'workernode3' }
+
             steps {
                 sh """
-                 trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKERHUB_USER}/${IMAGE}:${BUILD_NUMBER}
-                 
+                trivy image --exit-code 0 --severity HIGH,CRITICAL ${DOCKERHUB_USER}/${IMAGE}:${BUILD_NUMBER}
                 """
             }
         }
 
-        /* ===================== PUSH TO DOCKER HUB ===================== */
+        /* ===================== PUSH ===================== */
         stage('Push Image') {
             agent { label 'workernode3' }
-            steps {
-                unstash 'source-code'
 
+            steps {
                 withCredentials([usernamePassword(
                     credentialsId: 'dockerhub-creds',
                     usernameVariable: 'DOCKER_USER',
                     passwordVariable: 'DOCKER_PASS'
                 )]) {
-                    sh 'echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin'
+
+                    sh """
+                    echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                    docker push ${DOCKERHUB_USER}/${IMAGE}:${BUILD_NUMBER}
+                    docker push ${DOCKERHUB_USER}/${IMAGE}:latest
+                    """
                 }
-
-                sh """
-                docker push ${DOCKERHUB_USER}/${IMAGE}:${BUILD_NUMBER}
-                docker push ${DOCKERHUB_USER}/${IMAGE}:latest
-
-                
-                """
             }
         }
     }
 
     post {
         success {
-            echo "✅ portal Pipeline SUCCESS"
+            echo "✅ CI/CD Pipeline SUCCESS"
         }
         failure {
-            echo "❌ portal CI Pipeline FAILED"
+            echo "❌ CI/CD Pipeline FAILED"
         }
     }
 }
