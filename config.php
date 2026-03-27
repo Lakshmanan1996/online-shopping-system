@@ -8,11 +8,13 @@ $email    = "";
 $errors = array(); 
 
 // connect to the database
-define('DB_SERVER', 'localhost');
-   define('DB_USERNAME', 'PuneethReddy');
-   define('DB_PASSWORD', '');
-   define('DB_DATABASE', 'ecommerece');
-   $db = mysqli_connect(DB_SERVER,DB_USERNAME,DB_PASSWORD,DB_DATABASE);
+define('DB_SERVER', 'mysql');   // container name
+define('DB_USERNAME', 'root');
+define('DB_PASSWORD', 'password');
+define('DB_DATABASE', 'shopping');
+
+$db = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+
 if (!$db) {
     die("Connection failed: " . mysqli_connect_error());
 }
