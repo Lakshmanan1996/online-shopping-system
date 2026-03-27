@@ -11,9 +11,9 @@ $errors = array();
 define('DB_SERVER', 'mysql');   // container name
 define('DB_USERNAME', 'root');
 define('DB_PASSWORD', 'password');
-define('DB_DATABASE', 'shopping');
+define('DB_DATABASE', 'onlineshop');
 
-$db = mysqli_connect(DB_SERVER, DB_USERNAME, DB_PASSWORD, DB_DATABASE);
+$db = mysqli_connect('mysql', 'root', 'password', 'onlineshop', 3306);
 
 if (!$db) {
     die("Connection failed: " . mysqli_connect_error());
