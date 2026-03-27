@@ -1,17 +1,33 @@
-# Use official PHP with Apache
-FROM php:8.2-apache
+FROM ubuntu:22.04
 
-# Set working directory
-WORKDIR /var/www/html
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Copy project files to Apache directory
+# Install Apache, PHP, MySQL
+RUN apt update && apt install -y \
+    apache2 \
+    php \
+    php-mysql \
+    mysql-server \
+    curl \
+    unzip
+
+# Enable Apache mods
+RUN a2enmod rewrite
+
+# Copy project
 COPY . /var/www/html/
 
-# Install required PHP extensions
-RUN docker-php-ext-install mysqli
-
-# Set proper permissions
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html
 
-# Expose port 80
-EXPOSE 80
+# MySQL setup
+RUN service mysql start && \
+    mysql -e "CREATE DATABASE shopping;" && \
+    mysql -e "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY 'password';" && \
+    mysql -e "FLUSH PRIVILEGES;"
+
+# Expose ports
+EXPOSE 80 3306
+
+# Start both services
+CMD service mysql start && apachectl -D FOREGROUND
