@@ -17,6 +17,8 @@ $db = mysqli_connect('mysql', 'root', 'password', 'onlineshop', 3306);
 
 if (!$db) {
     die("Connection failed: " . mysqli_connect_error());
+} else {
+    echo "DB Connected Successfully";
 }
 
 // REGISTER USER
