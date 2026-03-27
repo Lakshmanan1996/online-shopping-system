@@ -39,7 +39,7 @@ pipeline {
         }
 
         /* ===================== SONARQUBE ===================== */
-        stage('SonarQube Analysis') {
+       stage('SonarQube Analysis') {
             agent { label 'workernode2' }
 
             steps {
@@ -47,17 +47,19 @@ pipeline {
 
                 script {
                     def scannerHome = tool 'SonarQubeScanner'
+
                     withSonarQubeEnv('sonarqube') {
                         sh """
                         ${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=shopping \
                         -Dsonar.sources=. \
-                        -Dsonar.java.binaries=target
-                        """
-                    }
+                        -Dsonar.language=php \
+                        -Dsonar.sourceEncoding=UTF-8
+                    """
                 }
             }
         }
+    }
 
         /* ===================== QUALITY GATE ===================== */
         stage('Quality Gate') {
